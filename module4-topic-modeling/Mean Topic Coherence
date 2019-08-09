@@ -1,0 +1,51 @@
+from gensim.models.coherencemodel import CoherenceModel
+
+from gensim.models.coherencemodel import CoherenceModel
+
+def compute_coherence_values(dictionary, corpus, path, limit, start=2, step=3, passes=5):
+    """
+    Compute c_v coherence for various number of topics
+
+    Parameters:
+    ----------
+    dictionary : Gensim dictionary
+    corpus : Gensim corpus
+    path : path to input texts
+    limit : Max num of topics
+    passes: the number of times the entire lda model & coherence values are calculated
+
+    Returns:
+    -------
+    coherence_values : Coherence values corresponding to the LDA model with respective number of topics
+    """
+    
+    coherence_values = []
+    
+    tokens = list(doc_stream(path))
+    
+    for iter_ in range(passes):
+        for num_topics in range(start, limit, step):
+            stream = doc_stream(path)
+            model = LdaMulticore(corpus=corpus, num_topics=num_topics, id2word=dictionary, workers=4)
+            coherencemodel = CoherenceModel(model=model,dictionary=dictionary,corpus=corpus, coherence='u_mass')
+            coherence_values.append({'pass': iter_, 
+                                     'num_topics': num_topics, 
+                                     'coherence_score': coherencemodel.get_coherence()
+                                    })
+
+    return coherence_values
+
+# Can take a long time to run.
+coherence_values = compute_coherence_values(dictionary=id2word, 
+                                                        corpus=corpus, 
+                                                        path=path, 
+                                                        start=2, 
+                                                        limit=40, 
+                                                        step=6,
+                                                        passes=3)
+
+topic_coherence = pd.DataFrame.from_records(coherence_values)
+
+import seaborn as sns
+
+ax = sns.lineplot(x="num_topics", y="coherence_score", data=topic_coherence)
